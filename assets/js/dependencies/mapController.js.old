@@ -1,0 +1,123 @@
+'use strict';
+
+/* Controllers */
+google.load('visualization', '1', {
+  packages: ['corechart']
+});
+
+google.setOnLoadCallback(function() {
+  angular.bootstrap(document.body, ['myApp']);
+});
+
+angular.module('myApp.controllers', [])
+  .controller('MyCtrl1', ['$scope', '$q',
+
+    function ($scope, $q) {
+
+      console.log("load map Controller..");
+      
+      $scope.chart = {};  // stored charts
+      $scope.Data = {};   // stored datasets 
+      $scope.name = 'Temp Name';
+
+      console.log('oka');
+
+      $scope.redraw = function(name, options) {
+        console.log('Redraw...' + name);
+        
+        var chart;
+        if ($scope.chart[name] == 'undefined') {
+            chart = $scope.chart[name];
+            console.log("Retrieved " + name + " chart " + JSON.stringify(chart));
+        }
+        else {
+            chart = {};
+     
+            // default settings 
+            chart.element = 'chart_div';
+            chart.type = 'ColumnChart';
+            chart.options = options || {
+                    'filterColumnLabel' : 'Abiding',
+                    'isStacked' : 'false',
+                    'colors' : ['orange','red','blue','grey'],
+                };
+
+            chart.data = $scope.viewData(name);
+        
+            console.log("Built " + name + " chart " + JSON.stringify(chart));
+        }
+
+        $scope.chart[name] = chart;
+        
+        var data = google.visualization.arrayToDataTable(chart.data);
+
+        var type = chart.type || 'ColumnChart';
+        
+        var canvas = new google.visualization[type](document.getElementById(chart.element));
+        canvas.draw(data, chart.options);
+    },
+
+    $scope.redrawSummary = function (name, data) {
+        var Vdata = google.visualization.arrayToDataTable(data);
+        var type = 'PieChart';
+        var options = {
+        };
+        
+        var element = document.getElementById(name);
+        console.log(name +' redraw ' + element);
+
+        var canvas2 = new google.visualization[type](element);
+        console.log('draw:' + JSON.stringify(data));
+        canvas2.draw(Vdata, options);
+    },
+
+    $scope.loadData = function (name, data) {
+   
+        $scope.Data[name] = data;
+        console.log("loaded " + name + " data");
+    },
+
+    $scope.get_boost = function (data, party) {
+        
+        var total = data.leadnow_green + data.leadnow_ndp + data.leadnow_liberal + data.leadnow_other + data.leadnow_undecided;
+        console.log(total + ' from: ' + JSON.stringify(data));
+        return total; 
+    },
+    
+    $scope.viewData = function (name) {
+        var newData = [
+            ['Riding', 'NDP', 'Liberal','Green','Conservative','Other',{ role : 'style'}],
+            ['Vancouver', 4100, 2000 ,3000, 550, 55, 'orange'],
+            ['Duncan', 4500, 8000,3333,1000, 500, 'red'],
+            ['Burnaby', 3800, 2000,4000,3000, 200, 'blue']
+        ];
+
+        console.log("new data: " + newData);
+        return newData;
+    },
+
+    $scope.setup = function (data) {
+     
+      console.log("setup...");
+      $scope.name = "Local Name";
+
+      console.log("load data: " + JSON.stringify(data));
+      
+      console.log("load seats: " + JSON.stringify(data['seats']));
+
+      $q.when( $scope.loadData('original', data) )
+      .then ( function (response) { 
+          console.log('now draw...');
+            $scope.redraw('original');
+      });
+
+    }
+
+  }
+])
+  .controller('MyCtrl2', ['$scope', '$q',
+
+    function ($scope, $q) {
+        $scope.name = 'TEST 2';
+    }
+]);

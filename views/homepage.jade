@@ -1,0 +1,73 @@
+extends layout
+block content
+
+    div.container(width="100%")
+        p &nbsp;
+        p &nbsp;
+        p &nbsp;
+        p &nbsp;
+        p &nbsp;
+        h3 {{title}}
+        div(ng-if="message")
+            hr
+            u Messages: 
+            br 
+            p {{message}}
+            hr
+ 
+        div(ng-controller="MyCtrl1" ng-init="setup(#{data})")
+            table.table
+                tr
+                    td 
+                        a(href="/sv") All Ridings
+                    td 
+                        a(href="/sv/") BC Ridings
+                    td 
+                        a(href="/sv") Your Riding
+            hr
+            h3 Result Summary over {{ridings.length}} Ridings
+            hr
+            button.btn.btn-primary(ng-click="redraw('original')") Redraw &nbsp;
+            input(type='textfield' ng-model='factor' ng-change="recalculate('main')" placeholder='-- % Abiding --')
+            hr
+
+            table.table(style="width:100%")
+                tr.active
+                    th(style="width:50%")  Effect of Strategic Voting
+                    th(style="width:50%")  Seats (with and without SV)
+                tr
+                    td
+                        div#dashboard_div
+                        div#filter_chart
+                        div#chart_div(g-chart style="width:100%; height:500px")
+                    td 
+                        div#summary_chart(g-chart style="width:100%; height:500px")
+
+            hr
+
+            div(ng-if="TPR")
+                a(href="/sv?ridings={{ TwoPartyRaces }}") Important Two Party Races
+                p &nbsp;
+                p
+                    code 
+                        b Lobby 3rd & 4th place parties to drop out to prevent a Conservative win
+                        br
+                        b * prevent a worst case scenario Harper majority
+                        br
+                        b * support another progressive party to ensure proportional representation for the next election
+                        br
+                        span (so that we don't have to do this sort of thing ever again!)
+
+            hr
+            b {{ridings.length}} Riding Details: 
+            hr
+
+            table.table.table-bordered(style="background-color=#ddd; width:100%")
+                tr.active
+                    th(style="width:50%") Original Results
+                    th(style="width:50%") Results with Strategic Voting
+                tr
+                    td
+                        div#Riding_chart(style="valign=right; valign:top")
+                    td 
+                        div#Riding_SVchart(style="align=left; valign:top")

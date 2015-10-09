@@ -1,0 +1,17 @@
+doctype html
+html
+  include header.jade
+  
+  script(type="text/javascript" src="https://www.google.com/jsapi")
+
+  body
+    .navbar.navbar-inverse.navbar-fixed-top
+      .container
+        .navbar-header
+          b MAP Test
+          div.navbar-right
+
+    block content  
+  footer(style="width:100%; background-color:lightgray;")
+    include footer.jade
+

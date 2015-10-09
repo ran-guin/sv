@@ -1,0 +1,192 @@
+'use strict';
+
+/* Controllers */
+google.load('visualization', '1', {
+  packages: ['corechart']
+});
+
+google.setOnLoadCallback(function() {
+  angular.bootstrap(document.body, ['myApp']);
+});
+
+angular.module('myApp.controllers', [])
+  .controller('MyCtrl1', ['$scope', '$q',
+
+    function ($scope, $q) {
+
+      console.log("load map Controller..");
+      
+      $scope.chart = {};  // stored charts
+      $scope.Data = {};   // stored datasets 
+      $scope.name = 'Temp Name';
+
+      console.log('oka');
+
+      $scope.redraw = function(name, options) {
+        console.log('Redraw...' + name);
+        
+        var chart;
+        if ($scope.chart[name] == 'undefined') {
+            chart = $scope.chart[name];
+            console.log("Retrieved " + name + " chart " + JSON.stringify(chart));
+        }
+        else {
+            chart = {};
+     
+            // default settings 
+            chart.element = 'chart_div';
+            chart.type = 'ColumnChart';
+            chart.options = options || {
+                    'filterColumnLabel' : 'Abiding',
+                    'isStacked' : 'false',
+                    'colors' : ['orange','red','blue','green','grey'],
+                };
+
+            chart.data = $scope.viewData(name);
+        
+            console.log("Built " + name + " chart " + JSON.stringify(chart));
+        }
+
+        $scope.chart[name] = chart;
+        
+        var data = google.visualization.arrayToDataTable(chart.data);
+
+        var type = chart.type || 'ColumnChart';
+        
+        var canvas = new google.visualization[type](document.getElementById(chart.element));
+        canvas.draw(data, chart.options);
+    },
+
+    $scope.redrawSummary = function (name, data) {
+        var Vdata = google.visualization.arrayToDataTable(data);
+        var type = 'PieChart';
+        var options = {
+        };
+        
+        var element = document.getElementById(name);
+        console.log(name +' redraw ' + element);
+
+        var canvas2 = new google.visualization[type](element);
+        console.log('draw:' + JSON.stringify(data));
+        canvas2.draw(Vdata, options);
+    },
+
+    $scope.loadData = function (name, data) {
+   
+        $scope.Data[name] = data;
+        console.log("loaded " + name + " data");
+    },
+
+    $scope.get_boost = function (data, party) {
+        
+        var total = data.leadnow_green + data.leadnow_ndp + data.leadnow_liberal + data.leadnow_other + data.leadnow_undecided;
+        console.log(total + ' from: ' + JSON.stringify(data));
+        return total; 
+    },
+    
+    $scope.viewData = function (name) {
+        var factor = $scope.factor;
+
+        console.log('adjust ' + name + ' data ..');
+        var data = $scope.Data[name];
+
+        console.log(name + " DATA: " + JSON.stringify(data));
+
+        var newData = ['Party', 'Seats', 'Again', { role : 'style'}];
+        
+        var parties = ['NDP','Liberal','Conservative','Green','Other'];
+        
+        var Seats = {};
+        var gained_seats = 10;
+        var solidified = 10;    // double winning margin 
+        var closing = 10;
+        var planB = 10;
+        var winning = 10;
+        var losing = 10;
+
+        for (var i=0; i<parties.length; i++) {
+            Seats[parties[i]] = 0;
+        }
+
+        for (var i=0; i<data.length; i++) {
+            var riding = data[i].riding.name;
+            var winner = data[i].winner.name;
+            var count = data[i].winning_counts;
+            var second_place = data[i].second_place;
+            var margin = data[i].margin;
+
+            var boost = $scope.get_boost(data[i],second_place);
+            if (boost > margin && winner == 'Conservative') {
+                gained_seats++;
+            }
+            else if (boost > margin && winner != 'Conservative') {
+                solidified++;
+            }
+            else if (winner == 'Conservative' && boost > margin/2) {
+                closing++;
+            }
+            else if (winner == 'Conservative') {
+                losing++;
+            }
+            else if (winner != 'Conservative') {
+                winning++;
+            }
+
+            Seats[winner]++;
+        
+        }
+
+        var summaryData = [
+            ['Status','Seats'],
+            ['Winning',winning],
+            ['Losing',losing],
+            ['Gained', gained_seats],
+            ['Closing',closing],
+            ['Plan B', planB],
+            ['Solidified',solidified]
+        ];
+
+        $scope.redrawSummary('summary_chart', summaryData);
+       
+        var newData;
+/*
+        newData = [
+            ['Seats', 'NDP', 'Liberal','Conservative','Other'],
+            ['Distribution', Seats['NDP'], Seats['Liberal'], Seats['Conservative'], Seats['Green'], Seats['Other']]
+        ];
+*/
+        newData = [
+            ['Party', 'A','B'],
+            ['111',222,333],
+            ['222',444,555]
+        ];
+
+        console.log("new data: " + newData);
+        return newData;
+    },
+
+    $scope.setup = function (data) {
+     
+      console.log("setup...");
+      $scope.name = "Local Name";
+
+      console.log("load data: " + JSON.stringify(data));
+      
+      console.log("load seats: " + JSON.stringify(data['seats']));
+
+      $q.when( $scope.loadData('original', data) )
+      .then ( function (response) { 
+          console.log('now draw...');
+            $scope.redraw('original');
+      });
+
+    }
+
+  }
+])
+  .controller('MyCtrl2', ['$scope', '$q',
+
+    function ($scope, $q) {
+        $scope.name = 'TEST 2';
+    }
+]);

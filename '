@@ -1,0 +1,292 @@
+'use strict';
+
+/* Controllers */
+google.load('visualization', '1', {
+  packages: ['corechart']
+});
+
+google.setOnLoadCallback(function() {
+  angular.bootstrap(document.body, ['myApp']);
+});
+
+angular.module('myApp.controllers', [])
+  .controller('MyCtrl1', ['$scope', '$q',
+
+    function ($scope, $q) {
+
+      console.log("load map Controller..");
+      
+      $scope.chart = {};  // stored charts
+      $scope.Data = {};   // stored datasets 
+      $scope.name = 'Temp Name';
+
+      console.log('oka');
+
+      $scope.redraw = function(name, options) {
+        console.log('Redraw...' + name);
+        
+        var chart;
+        if ($scope.chart[name] == 'undefined') {
+            chart = $scope.chart[name];
+            console.log("Retrieved " + name + " chart " + JSON.stringify(chart));
+        }
+        else {
+            chart = {};
+     
+            // default settings 
+            chart.element = 'chart_div';
+            chart.type = 'ColumnChart';
+            chart.options = options || {
+                    'filterColumnLabel' : 'Abiding',
+                    'isStacked' : 'false',
+                    'colors' : ['orange','red','green','blue','grey'],
+                };
+
+            chart.data = $scope.viewData(name);
+        
+            console.log("Built " + name + " chart " + JSON.stringify(chart));
+        }
+
+        $scope.chart[name] = chart;
+        
+        var data = google.visualization.arrayToDataTable(chart.data);
+
+        var type = chart.type || 'ColumnChart';
+        
+        var canvas = new google.visualization[type](document.getElementById(chart.element));
+        canvas.draw(data, chart.options);
+    },
+
+    $scope.redrawSummary = function (name, data) {
+        var Vdata = google.visualization.arrayToDataTable(data);
+        var type = 'PieChart';
+        var options = {
+            colors: ['green','blue','orange','red','purple','yellow']
+        };
+        
+        var element = document.getElementById(name);
+        console.log(name +' redraw ' + element);
+
+        var canvas2 = new google.visualization[type](element);
+        console.log('draw:' + JSON.stringify(data));
+        canvas2.draw(Vdata, options);
+
+        google.visualization.events.addListener(canvas2, 'select', 
+            function selectHandler (err) {
+                var selection = canvas2.getSelection();
+                var row = selection[0].row;
+                var scope = $scope.scope[row];
+                console.log(row + ': ' + JSON.stringify(selection));
+                console.log("Scope = " + scope);
+                var ridings = $scope[scope].join(',');
+                $scope.message="Ridings: " + ridings;
+                var url = "/sv?ridings=" + ridings;
+                alert(ridings);
+//                window.open(url,'_self','height=200,width=150');
+            });
+    },
+
+    $scope.drawRidings = function () {
+        var ridings = Object.keys($scope.Riding);
+        $scope.ridings = ridings;
+        
+        console.log("Found " + ridings.length + ridings);
+
+        var type = 'ColumnChart';
+        var options = {
+            'colors' : ['orange','red','green','blue','grey'],
+        };
+
+        console.log("Ridings: " + ridings.join(', '));
+        
+        var Rchart = {};
+        for (var i=0; i<ridings.length; i++) {
+            var riding = ridings[i];
+            var data = $scope.Riding[riding].data;
+            var Vdata = google.visualization.arrayToDataTable(data);
+            var element = document.getElementById('riding' + i);
+            
+            Rchart['C' + i] = new google.visualization[type](element);
+            console.log('draw:' + JSON.stringify(data));
+            Rchart['C' + i].draw(Vdata, options);
+        }
+    },
+
+    $scope.loadData = function (name, data) {
+   
+        $scope.Data[name] = data;
+        console.log("loaded " + name + " data");
+    },
+
+    $scope.get_boost = function (data, party) {
+        
+        var total = data.leadnow_green + data.leadnow_ndp + data.leadnow_liberal + data.leadnow_other + data.leadnow_undecided;
+        console.log(total + ' from: ' + JSON.stringify(data));
+        return total; 
+    },
+    
+    $scope.viewData = function (name) {
+        var factor = $scope.factor;
+
+        console.log('adjust ' + name + ' data ..');
+        var data = $scope.Data[name];
+
+        console.log(name + " DATA: " + JSON.stringify(data));
+
+        var newData = ['Party', 'Seats', 'Again', { role : 'style'}];
+        
+        $scope.parties = ['NDP','Liberal','Green','Conservative','Other'];  // needs to match party name... 
+        var parties = $scope.parties;
+        var block = 'Conservative';
+
+        var Seats = {};
+        var SV = {};
+
+        var Gained_Liberal = [];
+        var Gained_NDP = [];
+
+        var Closing = [];
+        var PlanB = [];
+        var Winning = [];
+        var Losing = [];
+
+        var Riding = {};
+
+        for (var i=0; i<parties.length; i++) {
+            Seats[parties[i]] = [];
+            SV[parties[i]] = [];
+            $scope[Solidified + '_' + parties[i]] = [];
+        }
+
+        for (var i=0; i<data.length; i++) {
+            var riding = data[i].riding.name;
+            var riding_id = data[i].riding.id;
+            var winner = data[i].winner.name;
+            var second_place = data[i].second_place.name;
+            
+            if (Seats[winner] == undefined) { winner = 'Other' }
+            if (SV[second_place] == undefined) { second_place = 'Other' }
+
+            var count = data[i].winning_counts;
+            var margin = data[i].margin;
+        
+            var boost = $scope.get_boost(data[i],second_place);
+            if (boost > margin && winner == block) {
+                
+                if (second_place == 'NDP') { Gained_NDP.push(riding_id) }
+                else if (second_place == 'Liberal') { Gained_Liberal.push(riding_id) }
+                
+                SV[second_place].push(riding_id);
+            }
+            else if (boost > margin && winner != block) {
+                $scope[Solidified + '_' + winner].push(riding_id); 
+                SV[winner].push(riding_id);
+            }
+            else if (winner == block && boost > margin/2) {
+                Closing.push(riding_id);
+                SV[winner].push(riding_id);
+            }
+            else if (winner == block) {
+                Losing.push(riding_id);
+                SV[winner].push(riding_id);
+            }
+            else if (winner != block) {
+                Winning.push(riding_id);
+                SV[winner].push(riding_id);
+            }
+
+            Riding[riding] = {};
+            var labels = ['Riding'];
+            var Rdata = [riding];
+            for (var j=0; j<parties.length; j++) {
+                var field = parties[j];
+                labels.push(field);
+                Rdata.push(data[i][field]);
+
+                if (field == block) { adjusted = data[i][field] }
+                else if (field == second_place) { adjusted = data[i][field] + boost }
+                SVdata.push(adjusted);
+            }
+            Riding[riding].data = [labels, Rdata];
+
+            console.log("Riding Results: " + JSON.stringify(Riding[riding].data));
+
+            Seats[winner].push(riding);
+            console.log(riding + ' won by ' + winner + ' by ' +  margin + ' with ' + boost + ' boosted votes'); 
+        }
+       
+        $scope.Riding = Riding;
+
+        $scope.message = data.length + " Riding Results";
+        
+        $scope.Seats = Seats;
+        $scope.SV    = SV;
+
+        $scope.Winning = Winning;
+        $scope.Losing = Losing;
+        $scope.Gained_NDP = Gained_NDP;
+        $scope.Gained_Liberal = Gained_Liberal;
+        $scope.Closing = Closing;
+        $scope.PlanB = PlanB;
+
+        console.log("Seats: " + JSON.stringify(Seats));
+
+        $scope.scope = ['Winning','Losing','Gained_NDP','Gained_Liberal', 'Closing', 'Plan B','Solidified_NDP','Solidified_Liberal'];
+
+        var summaryData = [
+            ['Status','Seats'],
+            ['Winning', $scope.Winning.length],
+            ['Losing',$scope.Losing.length],
+            ['Gained_NDP', $scope.Gained_NDP.length],
+            ['Gained_Liberal', $scope.Gained_Liberal.length],
+            ['Closing', $scope.Closing.length],
+            ['Plan B', $scope.PlanB.length],
+            ['Solidified NDP',$scope.Solidified_NDP.length]
+            ['Solidified Liberal',$scope.Solidified_Liberal.length]
+        ];
+
+        $scope.redrawSummary('summary_chart', summaryData);
+       
+        var titles = ['Seats'];
+        var noSV  = ['Past Results'];
+        var withSV = ['Effect of Strategic Voting'];
+        for (var i=0; i<parties.length; i++) {
+            titles.push(parties[i]);
+            noSV.push(Seats[parties[i]].length);
+            withSV.push(SV[parties[i]].length);
+        }
+        var newData = [ titles];
+        newData.push(noSV);
+        newData.push(withSV);
+            
+        console.log("new data: " + newData);
+        return newData;
+    },
+
+    $scope.setup = function (data) {
+     
+      console.log("setup...");
+      $scope.name = "Local Name";
+
+      console.log("load data: " + JSON.stringify(data));
+      
+      console.log("load seats: " + JSON.stringify(data['seats']));
+
+      $q.when( $scope.loadData('original', data) )
+      .then ( function (response) { 
+          console.log('now draw...');
+            $scope.redraw('original');
+
+            $scope.drawRidings();
+      });
+
+    }
+
+  }
+])
+  .controller('MyCtrl2', ['$scope', '$q',
+
+    function ($scope, $q) {
+        $scope.name = 'TEST 2';
+    }
+]);
