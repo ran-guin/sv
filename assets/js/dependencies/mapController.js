@@ -21,6 +21,9 @@ angular.module('myApp.controllers', [])
         $scope.name = 'Temp Name';
         $scope.title = "Strategic Voting";
 
+        $scope.abiders = 90;
+        $scope.addons  = 100;
+
         $scope.parties = ['NDP','Liberal','Green','Conservative','Other'];  // needs to match party name... 
    
         $scope.redraw = function(name, options) {
@@ -151,8 +154,13 @@ angular.module('myApp.controllers', [])
     },
 
     $scope.get_boost = function (data, party) {
-        var total = data.leadnow_green + data.leadnow_ndp + data.leadnow_liberal + data.leadnow_other + data.leadnow_undecided;
-        return total; 
+        
+        var boost_total = 0;
+        boost_total = (data.leadnow_green + data.leadnow_ndp + data.leadnow_liberal + data.leadnow_other + data.leadnow_undecided);
+        boost_total = boost_total + parseInt($scope.addons);
+        boost_total  = boost_total * parseInt($scope.abiders) / 100;
+
+        return boost_total; 
     },
     
     $scope.parseData = function (name) {
