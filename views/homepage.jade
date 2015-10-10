@@ -27,8 +27,34 @@ block content
             hr
             h3 Result Summary over {{ridings.length}} Ridings
             hr
-            button.btn.btn-primary(ng-click="redraw('original')") Redraw &nbsp;
-            input(type='textfield' ng-model='factor' ng-change="recalculate('main')" placeholder='-- % Abiding --')
+            table
+                tr
+                    td
+                        b Adjust % of Leadnow members who comply:
+                        table(style="width:500px")
+                            tr
+                                td &nbsp;
+                                td(align='center') 
+                                    h2 {{abiders}} %
+                                td &nbsp;
+                            tr
+                                td 0%
+                                td
+                                    input(type='range' name="Abiding" min='0' max='100' ng-model='abiders' ng-change="redraw('original')" ) 
+                                td 100%
+                    td 
+                        b Boost # of Leadnow members (per riding) - or non-members who comply           
+                        table(style="width:500px")
+                            tr
+                                td &nbsp;
+                                td(align='center') 
+                                    h2 + {{addons}}
+                                td &nbsp;
+                            tr
+                                td 0
+                                td
+                                    input(type='range' name="AddOns" min='0' max='5000' ng-model='addons' ng-change="redraw('original')" ) 
+                                td 5000
             hr
 
             table.table(style="width:100%")
